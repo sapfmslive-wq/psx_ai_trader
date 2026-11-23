@@ -1,0 +1,304 @@
+"""Tests for src.features.engine.compute_and_store_features (Phase 12).
+
+Same fake-repository-module-injected-via-sys.modules technique as the
+indicator/candle engine DB tests — runs fully offline without SQLAlchemy.
+"""
+
+from __future__ import annotations
+
+import datetime as dt
+import sys
+import types
+from dataclasses import dataclass
+
+import numpy as np
+import pytest
+
+from src.config.loader import load_config
+
+SETTINGS = """
+market:
+  timezone: Asia/Karachi
+data:
+  provider: mock
+collector:
+  reconnect_seconds: 5
+  stale_timeout_seconds: 30
+  poll_interval_seconds: 15
+  max_consecutive_failures: 10
+prediction:
+  horizons: ["5m"]
+risk:
+  max_risk_per_trade: 0.01
+  max_positions: 5
+trading:
+  mode: RESEARCH
+dashboard:
+  host: 127.0.0.1
+  port: 8000
+  allow_external: false
+logging:
+  level: INFO
+database:
+  path: database/psx.db
+  echo: false
+quality:
+  max_change_percent: 10.0
+  stale_seconds: 300
+  future_timestamp_tolerance_seconds: 5
+candles:
+  volume_convention: cumulative
+indicators:
+  sma_periods: [5, 10]
+  ema_periods: [5, 10]
+  rsi_period: 14
+  macd_fast_period: 12
+  macd_slow_period: 26
+  macd_signal_period: 9
+  atr_period: 14
+  adx_period: 14
+  bollinger_period: 20
+  bollinger_num_std: 2.0
+  roc_period: 12
+  momentum_period: 10
+  stochastic_k_period: 14
+  stochastic_d_period: 3
+  volume_ma_period: 20
+features:
+  return_horizons: [1, 5]
+  high_low_breakout_period: 10
+  trend_fast_sma_period: 5
+  trend_slow_sma_period: 10
+  volatility_period: 10
+labels:
+  horizons: [5, 15, 30]
+  neutral_threshold_pct: 0.1
+  take_profit_pct: 1.0
+  stop_loss_pct: 0.5
+baselines:
+  ma_fast_period: 10
+  ma_slow_period: 30
+  rsi_oversold: 30
+  rsi_overbought: 70
+  train_fraction: 0.7
+  random_seed: 42
+models:
+  train_fraction: 0.6
+  validation_fraction: 0.2
+  random_seed: 42
+  enabled: [logistic, random_forest, gradient_boosting, hist_gradient_boosting]
+  min_rows: 300
+  permutation_repeats: 5
+backtest:
+  initial_cash: 1000000
+  position_fraction: 1.0
+  execution_delay_bars: 1
+  slippage_bps: 10.0
+  max_participation_pct: 10.0
+  stop_loss_pct: 0.0
+  take_profit_pct: 0.0
+  min_price: 0.0
+  min_avg_volume: 0.0
+  avg_volume_bars: 20
+  risk_free_rate_annual_pct: 0.0
+  liquidate_at_end: true
+  min_trades_for_confidence: 30
+"""
+
+SYMBOLS = """
+indices:
+  - KSE100
+  - KMI30
+stocks:
+  - THCCL
+watchlist:
+  - THCCL
+"""
+
+
+@dataclass
+class _FakeCandle:
+    open_time: dt.datetime
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: float
+
+
+class _FakeSession:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+@pytest.fixture()
+def config(tmp_path):
+    settings_path = tmp_path / "settings.yaml"
+    symbols_path = tmp_path / "symbols.yaml"
+    env_path = tmp_path / ".env"
+    settings_path.write_text(SETTINGS, encoding="utf-8")
+    symbols_path.write_text(SYMBOLS, encoding="utf-8")
+    env_path.write_text("LIVE_TRADING_ENABLED=false\n", encoding="utf-8")
+    return load_config(settings_path=settings_path, symbols_path=symbols_path, env_path=env_path)
+
+
+def _session_factory():
+    return _FakeSession()
+
+
+def _make_candles(n, seed, base_price=100.0):
+    rng = np.random.default_rng(seed)
+    base = dt.datetime(2026, 9, 21, 9, 32, tzinfo=dt.timezone.utc)
+    closes = base_price + np.cumsum(rng.normal(0, 0.5, n))
+    return [
+        _FakeCandle(
+            open_time=base + dt.timedelta(minutes=i),
+            open=closes[i] - 0.1, high=closes[i] + 0.3, low=closes[i] - 0.3,
+            close=closes[i], volume=float(rng.integers(100, 1000)),
+        )
+        for i in range(n)
+    ]
+
+
+def _install_fake_repository(monkeypatch, candles_by_symbol):
+    inserted = []
+    fake_module = types.ModuleType("src.database.repository")
+
+    def get_candles(session, symbol, timeframe, start, end):
+        return candles_by_symbol.get(symbol, [])
+
+    def insert_feature(session, **kwargs):
+        key = (kwargs["symbol"], kwargs["timeframe"], kwargs["timestamp"], kwargs["feature_name"], kwargs["feature_version"])
+        if any(
+            (c["symbol"], c["timeframe"], c["timestamp"], c["feature_name"], c["feature_version"]) == key
+            for c in inserted
+        ):
+            return False
+        inserted.append(kwargs)
+        return True
+
+    fake_module.get_candles = get_candles
+    fake_module.insert_feature = insert_feature
+    monkeypatch.setitem(sys.modules, "src.database.repository", fake_module)
+    return inserted
+
+
+def test_stock_features_include_relative_performance_vs_both_indices(config, monkeypatch):
+    from src.features.engine import compute_and_store_features
+
+    n = 40
+    candles_by_symbol = {
+        "THCCL": _make_candles(n, seed=1, base_price=80.0),
+        "KSE100": _make_candles(n, seed=2, base_price=45000.0),
+        "KMI30": _make_candles(n, seed=3, base_price=70000.0),
+    }
+    inserted = _install_fake_repository(monkeypatch, candles_by_symbol)
+
+    start = candles_by_symbol["THCCL"][0].open_time
+    end = candles_by_symbol["THCCL"][-1].open_time + dt.timedelta(minutes=1)
+    result = compute_and_store_features(config, _session_factory, "THCCL", "1m", start, end)
+
+    assert result["written"] > 0
+
+    stock_rows = [c for c in inserted if c["symbol"] == "THCCL"]
+    feature_names = {c["feature_name"] for c in stock_rows}
+    assert "relative_return_5bar_vs_KSE100" in feature_names
+    assert "relative_return_5bar_vs_KMI30" in feature_names
+    assert "ma_distance_5" in feature_names
+    assert "gap_pct" in feature_names
+    assert "relative_volume" in feature_names
+
+    for c in stock_rows:
+        assert c["feature_version"] == "features_v1"
+
+
+def test_index_regime_features_are_stored_under_index_symbol(config, monkeypatch):
+    from src.features.engine import compute_and_store_features
+
+    n = 40
+    candles_by_symbol = {
+        "THCCL": _make_candles(n, seed=1, base_price=80.0),
+        "KSE100": _make_candles(n, seed=2, base_price=45000.0),
+        "KMI30": _make_candles(n, seed=3, base_price=70000.0),
+    }
+    inserted = _install_fake_repository(monkeypatch, candles_by_symbol)
+
+    start = candles_by_symbol["THCCL"][0].open_time
+    end = candles_by_symbol["THCCL"][-1].open_time + dt.timedelta(minutes=1)
+    compute_and_store_features(config, _session_factory, "THCCL", "1m", start, end)
+
+    kse_rows = [c for c in inserted if c["symbol"] == "KSE100"]
+    kse_feature_names = {c["feature_name"] for c in kse_rows}
+    assert "trend" in kse_feature_names
+    assert "volatility" in kse_feature_names
+    assert "position_vs_sma_5" in kse_feature_names
+
+    kmi_rows = [c for c in inserted if c["symbol"] == "KMI30"]
+    assert len(kmi_rows) > 0
+
+
+def test_building_features_for_an_index_itself_produces_only_regime_features(config, monkeypatch):
+    from src.features.engine import compute_and_store_features
+
+    n = 40
+    candles_by_symbol = {
+        "KSE100": _make_candles(n, seed=2, base_price=45000.0),
+        "KMI30": _make_candles(n, seed=3, base_price=70000.0),
+    }
+    inserted = _install_fake_repository(monkeypatch, candles_by_symbol)
+
+    start = candles_by_symbol["KSE100"][0].open_time
+    end = candles_by_symbol["KSE100"][-1].open_time + dt.timedelta(minutes=1)
+    compute_and_store_features(config, _session_factory, "KSE100", "1m", start, end)
+
+    symbols_touched = {c["symbol"] for c in inserted}
+    assert symbols_touched == {"KSE100"}  # no KMI30, no "relative_return_*" cross features
+    feature_names = {c["feature_name"] for c in inserted}
+    assert not any(name.startswith("relative_return") for name in feature_names)
+
+
+def test_missing_index_candles_produce_nan_not_fabricated_relative_performance(config, monkeypatch):
+    from src.features.engine import compute_and_store_features
+
+    n = 40
+    candles_by_symbol = {
+        "THCCL": _make_candles(n, seed=1, base_price=80.0),
+        "KSE100": [],  # no index data at all
+        "KMI30": [],
+    }
+    inserted = _install_fake_repository(monkeypatch, candles_by_symbol)
+
+    start = candles_by_symbol["THCCL"][0].open_time
+    end = candles_by_symbol["THCCL"][-1].open_time + dt.timedelta(minutes=1)
+    compute_and_store_features(config, _session_factory, "THCCL", "1m", start, end)
+
+    feature_names = {c["feature_name"] for c in inserted}
+    # No relative-performance features at all, since there's no index data
+    # to compute them against — nothing fabricated.
+    assert not any(name.startswith("relative_return") for name in feature_names)
+    # But plain stock features (not dependent on the index) are still there.
+    assert "gap_pct" in feature_names
+
+
+def test_rebuilding_is_idempotent(config, monkeypatch):
+    from src.features.engine import compute_and_store_features
+
+    n = 40
+    candles_by_symbol = {
+        "THCCL": _make_candles(n, seed=1, base_price=80.0),
+        "KSE100": _make_candles(n, seed=2, base_price=45000.0),
+        "KMI30": _make_candles(n, seed=3, base_price=70000.0),
+    }
+    inserted = _install_fake_repository(monkeypatch, candles_by_symbol)
+
+    start = candles_by_symbol["THCCL"][0].open_time
+    end = candles_by_symbol["THCCL"][-1].open_time + dt.timedelta(minutes=1)
+    first = compute_and_store_features(config, _session_factory, "THCCL", "1m", start, end)
+    second = compute_and_store_features(config, _session_factory, "THCCL", "1m", start, end)
+
+    assert first["written"] > 0
+    assert second["written"] == 0
+    assert second["duplicate"] == first["written"]

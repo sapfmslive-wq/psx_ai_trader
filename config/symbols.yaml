@@ -1,0 +1,19 @@
+# PSX AI Trader — symbol universe.
+#
+# Add or remove indices/stocks here. Never hardcode a symbol in Python
+# source — every module that needs the symbol list reads it from here via
+# src/config/loader.py.
+#
+# Validation rules (enforced at load time):
+#   - "indices" and "stocks" must each be non-empty, upper-case, unique.
+#   - "watchlist" entries must already appear in "indices" or "stocks".
+
+indices:
+  - KSE100
+  - KMI30
+
+stocks:
+  - THCCL
+
+watchlist:
+  - THCCL

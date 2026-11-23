@@ -1,0 +1,65 @@
+# PSX transaction-cost model (Phase 16 — Sections 29 and 116 of the project spec)
+#
+# READ THIS BEFORE TRUSTING ANY BACKTEST RESULT.
+# These are *defaults researched on 2026-11-23*, not your broker's tariff.
+# Your broker's written tariff and your contract notes are the binding source:
+# override any value below with your real numbers. Where a figure could not be
+# verified from an authoritative source, it says so, and the default errs on the
+# HIGH-COST side (overstated costs make a false "profitable" result harder to get).
+#
+# Every backtest report prints which of these were modeled and which were not.
+
+brokerage:
+  # PRIMARY SOURCE — PSX Regulations, Chapter 4, clause 4.28 and Annexure-III
+  # ("Standard range/scale of brokerage commission"), psx.com.pk. The scale is a
+  # MINIMUM of "3 paisa per share or 0.15% of the transaction value, whichever is
+  # higher", up to a MAXIMUM of 2.5% of the transaction value. It is stated to be
+  # EXCLUSIVE of levies. Verified in the 2020 Rulebook and the later amendment
+  # notices; clause 4.28 was amended on 2024-12-16 only to route CDS-eligible
+  # government-debt trades to a new Annexure-IV (not equities). CAVEAT: the numeric
+  # Annexure-III line was NOT re-read in the 2026 edition itself (document fetch
+  # truncated) — confirm with your broker.
+  # NOTE: one secondary source (investify.pk, 2026-06-25) claims PSX prescribes "no
+  # standard rate" and that retail commissions run ~0.05%-0.25%. That conflicts with
+  # PSX's own regulations above; the regulations are trusted. Online-only brokers may
+  # legitimately charge less (proposed in 2022; adoption NOT verified) — if your
+  # broker's tariff is lower, enter it here.
+  commission_rate_pct: 0.15
+  commission_min_per_share: 0.03   # rupees per share (3 paisa); charged if it exceeds the % amount
+  commission_max_pct: 2.5          # regulatory ceiling; the model never charges above it
+  # PSX's scale charges a round trip squared the SAME trading day on ONE side only.
+  # Brokers vary, so the conservative default charges both sides. true = one side.
+  day_trade_one_side_only: false
+
+# SECONDARY SOURCE ONLY — investify.pk (2026-06-25): "roughly 13-16% of the
+# commission, depending on province" (13% Sindh is quoted; the PUNJAB rate was NOT
+# verified, and you are in Punjab). Default = top of the stated range (conservative).
+# Check your contract note: it must show this line.
+sales_tax_on_commission_pct: 16.0
+
+# SECONDARY SOURCE ONLY — investify.pk (2026-06-25), citing CDC's schedule of fees:
+# "on the order of half a paisa per share". Not checked against CDC's own schedule.
+cdc_per_share: 0.005             # rupees per share, per side
+
+# NOT MODELED. PSX / NCCPL / SECP levies are described only as "very small
+# pass-through amounts" and NO source gave a figure. Setting a number here would be
+# invention, so the default is 0.0 and every report says levies are excluded
+# (results are therefore very slightly optimistic by an unknown small amount).
+# Fill this in from your contract notes if you want it modeled.
+other_levies_pct_per_side: 0.0
+
+capital_gains_tax:
+  # PRIMARY SOURCE — PSX "Open an account & invest" page: CGT is 15% for tax-return
+  # filers and 20% for non-filers. Holding-period rules, loss carry-forward and
+  # NCCPL's exact collection mechanics are NOT modeled: tax is applied per closed
+  # trade on positive net profit only, with no refund for losing trades — which
+  # OVERSTATES tax compared with netting gains and losses on your annual return.
+  apply: true
+  tax_filer: true
+  filer_rate_pct: 15.0
+  non_filer_rate_pct: 20.0
+
+# Not modeled at all (and so not configurable here): dividend withholding tax,
+# corporate actions (bonus/rights/splits — prices are NOT adjusted for them), the
+# lot-size rules of PSX's odd-lot market, short selling, and T+2 cash settlement
+# (sale proceeds are treated as available immediately, which is optimistic).

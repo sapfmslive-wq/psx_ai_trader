@@ -1,0 +1,10 @@
+2026-11-23 02:09:31 | ERROR    | psx_ai_trader.data | Cycle failed (1 consecutive): simulated feed error
+2026-11-23 02:09:31 | ERROR    | psx_ai_trader.data | Cycle failed (1 consecutive): simulated feed error
+2026-11-23 02:09:31 | ERROR    | psx_ai_trader.data | Cycle failed (2 consecutive): simulated feed error
+2026-11-23 02:09:31 | ERROR    | psx_ai_trader.data | Cycle failed (3 consecutive): simulated feed error
+2026-11-23 02:09:31 | CRITICAL | psx_ai_trader.data | Max consecutive failures (3) reached — still retrying with backoff.
+2026-11-23 02:12:02 | ERROR    | psx_ai_trader.data | Cycle failed (1 consecutive): simulated feed error
+2026-11-23 02:12:02 | ERROR    | psx_ai_trader.data | Cycle failed (1 consecutive): simulated feed error
+2026-11-23 02:12:02 | ERROR    | psx_ai_trader.data | Cycle failed (2 consecutive): simulated feed error
+2026-11-23 02:12:02 | ERROR    | psx_ai_trader.data | Cycle failed (3 consecutive): simulated feed error
+2026-11-23 02:12:02 | CRITICAL | psx_ai_trader.data | Max consecutive failures (3) reached — still retrying with backoff.

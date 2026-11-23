@@ -1,0 +1,226 @@
+# PSX AI Trader — application settings.
+#
+# This file controls behavior. It contains NO secrets (those live in .env).
+# Every key here is validated at startup by src/config/loader.py — an invalid
+# value fails fast with a clear error instead of being silently ignored.
+#
+# Do not hardcode any of these values in Python source. If a new phase needs
+# a new setting, add it here and to the loader's validation, not as a
+# constant buried in a module.
+
+market:
+  # IANA timezone name. Must be a real zoneinfo entry (validated at load time).
+  # This is the market's local timezone; Phase 8 will use it to build the
+  # trading calendar (open/close/holidays/breaks).
+  timezone: Asia/Karachi
+
+data:
+  # Which data provider implementation to use. Only "mock" has a real
+  # implementation as of Phase 2 — CSV lands in Phase 5, PSX/broker in
+  # Phase 7/26. Listing the full enum now means the config schema doesn't
+  # need to change again just because a new provider is implemented later.
+  provider: mock  # one of: mock | csv | historical | psx | broker
+
+collector:
+  # Seconds to wait before attempting to reconnect after a dropped feed.
+  reconnect_seconds: 5
+  # Seconds of silence from the feed before it is considered stale.
+  stale_timeout_seconds: 30
+  # How often the live collector polls the provider for a new observation
+  # per symbol, while the market is open.
+  poll_interval_seconds: 15
+  # After this many consecutive failed cycles, the collector logs a
+  # CRITICAL system event (but keeps retrying with backoff — it never
+  # gives up on its own; Section 15 requires it to survive one bad record
+  # or one bad connection, not exit).
+  max_consecutive_failures: 10
+
+prediction:
+  # Horizons the modeling phases (14/15) will eventually train and predict
+  # for. Format: an integer followed by m (minutes), h (hours), or d (days).
+  horizons:
+    - 5m
+    - 15m
+    - 30m
+
+risk:
+  # Fraction of portfolio value risked per trade, e.g. 0.01 = 1%.
+  max_risk_per_trade: 0.01
+  # Maximum number of simultaneously open positions.
+  max_positions: 5
+
+trading:
+  # RESEARCH | BACKTEST | PAPER | LIVE
+  # LIVE requires LIVE_TRADING_ENABLED=true in .env as well — the loader
+  # refuses to start in LIVE mode without that, no matter what is written
+  # here. This is intentional defense in depth, not a bug.
+  mode: RESEARCH
+
+dashboard:
+  # Local-only by default (Section 68 of the project spec). Only set
+  # allow_external: true if you understand the security implications of
+  # exposing the dashboard beyond localhost.
+  host: 127.0.0.1
+  port: 8000
+  allow_external: false
+
+logging:
+  # Minimum level written to the console handler. File handlers always
+  # capture INFO and above regardless of this setting (see src/utils/logger.py).
+  level: INFO
+
+database:
+  # Path to the SQLite database file, relative to the project root.
+  path: database/psx.db
+  # SQLAlchemy "echo" — logs every SQL statement. Useful for debugging,
+  # noisy otherwise. Leave false unless actively diagnosing a query.
+  echo: false
+
+quality:
+  # Data-quality engine thresholds (Phase 6). None of these delete data —
+  # they only decide what quality_status/quality_reason gets attached to a
+  # stored tick. See src/data/validator.py for the full rule set.
+  #
+  # A single-observation percentage change larger than this is flagged
+  # SUSPECT (not rejected). This is a generic sanity threshold, not a
+  # PSX circuit-breaker value — tune it for your data's actual granularity.
+  max_change_percent: 10.0
+  # If a symbol's price hasn't changed for this many seconds despite new
+  # observations arriving, it's flagged SUSPECT as a possible frozen feed.
+  stale_seconds: 300
+  # An observation timestamped more than this many seconds in the future
+  # (relative to when it was received) is flagged SUSPECT — usually clock
+  # skew or a malformed record, never a real future price.
+  future_timestamp_tolerance_seconds: 5
+
+candles:
+  # How to interpret the "volume" field on recorded ticks when building
+  # OHLCV candles (Section 17: "clearly distinguish trade volume from
+  # reported cumulative volume — do not accidentally sum cumulative
+  # volume"):
+  #   cumulative — the field is a running total for the trading day (resets
+  #     each day); candle volume = the increase in that total during the
+  #     candle's window. This matches how the mock provider's stock volume
+  #     behaves, and is the common convention for many real exchange feeds.
+  #   per_tick   — the field is the volume traded in that single tick/
+  #     observation; candle volume = the sum of tick volumes in the window.
+  # Only one convention is supported at a time; per-symbol overrides are
+  # not implemented — if a real data source mixes conventions across
+  # symbols, that is a known limitation (see README Phase 10 notes).
+  volume_convention: cumulative
+
+indicators:
+  # Technical indicator settings (Phase 11, Section 18). Multiple periods
+  # are supported for SMA/EMA per Section 18's example; everything else
+  # takes one period, also configurable. No PSX-specific tuning here —
+  # these are the common textbook defaults, not backtested optimums.
+  sma_periods: [5, 10, 20, 50, 100, 200]
+  ema_periods: [5, 10, 20, 50, 100, 200]
+  rsi_period: 14
+  macd_fast_period: 12
+  macd_slow_period: 26
+  macd_signal_period: 9
+  atr_period: 14
+  adx_period: 14
+  bollinger_period: 20
+  bollinger_num_std: 2.0
+  roc_period: 12
+  momentum_period: 10
+  stochastic_k_period: 14
+  stochastic_d_period: 3
+  volume_ma_period: 20
+
+features:
+  # Feature-engine settings (Phase 12, Sections 19/20). Horizons are in
+  # BARS of whatever timeframe features are built at (e.g. on 1m candles,
+  # [1, 5, 15, 60] means 1-minute, 5-minute, 15-minute and 1-hour returns).
+  return_horizons: [1, 5, 15, 60]
+  # A close above the highest high (or below the lowest low) of the PRIOR
+  # this-many bars is flagged as a breakout (+1) / breakdown (-1).
+  high_low_breakout_period: 20
+  # Trend rule: +1 (up) if close > fast SMA > slow SMA, -1 (down) if
+  # close < fast SMA < slow SMA, 0 otherwise. Fast must be < slow.
+  trend_fast_sma_period: 20
+  trend_slow_sma_period: 50
+  # Window for the index realized-volatility feature.
+  volatility_period: 20
+
+labels:
+  # Prediction targets (Phase 13, Section 22). LABELS USE FUTURE DATA ON
+  # PURPOSE — that is what a label is. They live in their own `labels`
+  # table, never in `features`, so a model cannot pick one up as an input
+  # by accident. Horizons are in BARS of the timeframe labels are built at.
+  horizons: [5, 15, 30]
+  # 3-class target: a future return within +/- this percent is NEUTRAL.
+  neutral_threshold_pct: 0.1
+  # Take-profit / stop-loss barriers (percent from the entry close) for
+  # the "TP reached before SL" target. Illustrative defaults, not tuned.
+  take_profit_pct: 1.0
+  stop_loss_pct: 0.5
+
+baselines:
+  # Baseline predictors (Phase 14, Section 23). These are the yardstick any
+  # ML model must beat — they are NOT trading strategies, and this phase
+  # reports prediction quality only (no costs, no P&L; that is Phase 16).
+  ma_fast_period: 10
+  ma_slow_period: 30
+  # RSI baseline: oversold -> predict UP, overbought -> predict DOWN,
+  # in between -> no opinion (abstain). Uses indicators.rsi_period.
+  rsi_oversold: 30
+  rsi_overbought: 70
+  # Chronological split: the first this-fraction of bars is "train" (only
+  # used by the majority-class baseline); the rest is "test". Never shuffled.
+  train_fraction: 0.7
+  # Seed for the random baseline, so runs are reproducible (Section 59).
+  random_seed: 42
+
+models:
+  # Machine-learning models (Phase 15). Chronological split — never shuffled:
+  # the first train_fraction of rows trains, the next validation_fraction
+  # selects hyperparameters and fits the probability calibrator, and the
+  # remainder is the TEST segment, which no choice is allowed to touch.
+  # A `horizon`-bar gap is purged between segments (labels look that far ahead).
+  train_fraction: 0.6
+  validation_fraction: 0.2
+  random_seed: 42
+  # Any subset of: logistic, random_forest, gradient_boosting,
+  # hist_gradient_boosting. All run on one CPU core (n_jobs=1).
+  enabled: [logistic, random_forest, gradient_boosting, hist_gradient_boosting]
+  # Refuse to train on fewer usable rows than this (after warm-up/NaN drops).
+  min_rows: 300
+  # Shuffles per feature for permutation importance (on the validation set).
+  permutation_repeats: 5
+
+backtest:
+  # Event-driven backtest engine (Phase 16). Transaction costs and taxes live in
+  # config/costs.yaml (with their sources); these are the execution assumptions.
+  initial_cash: 1000000
+  # Fraction of current equity committed on each entry (1.0 = all-in).
+  position_fraction: 1.0
+  # An order decided at the CLOSE of bar t fills at the OPEN of bar t+delay.
+  # Must be >= 1: 0 would trade on the same bar that produced the signal.
+  execution_delay_bars: 1
+  # ASSUMPTION (no authoritative figure exists): adverse price move per fill, in
+  # basis points. Buys fill higher, sells lower. Use `backtest --cost-sensitivity`
+  # to see whether results survive worse values.
+  slippage_bps: 10.0
+  # A fill may not exceed this percent of the fill bar's volume (partial fills; the
+  # unfilled remainder is dropped, not carried). 0 = no cap. Bars with no volume
+  # data cannot be capped and are counted in the report.
+  max_participation_pct: 10.0
+  # Optional exits, in percent from the entry fill. 0 = off. If one bar touches
+  # both, the stop is assumed to have hit first (never optimistic).
+  stop_loss_pct: 0.0
+  take_profit_pct: 0.0
+  # Liquidity filters on ENTRIES (0 = off): minimum price, and minimum average
+  # volume over the previous `avg_volume_bars` bars.
+  min_price: 0.0
+  min_avg_volume: 0.0
+  avg_volume_bars: 20
+  # Annual risk-free rate for Sharpe/Sortino, in percent. 0 FLATTERS risk-adjusted
+  # ratios (Pakistani T-bill yields have been well above zero) — set your own.
+  risk_free_rate_annual_pct: 0.0
+  # Close any open position at the final bar (with costs) instead of leaving it open.
+  liquidate_at_end: true
+  # Reports flag results from fewer closed trades than this as not meaningful.
+  min_trades_for_confidence: 30

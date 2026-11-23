@@ -1,0 +1,52 @@
+2026-11-23 02:09:31 | INFO     | psx_ai_trader.data | Live collector starting (poll_interval=1s, max_consecutive_failures=3).
+2026-11-23 02:09:31 | ERROR    | psx_ai_trader.data | Cycle failed (1 consecutive): simulated feed error
+2026-11-23 02:09:31 | INFO     | psx_ai_trader.data | Cycle recorded 2 symbol(s) (session=REGULAR).
+2026-11-23 02:09:31 | INFO     | psx_ai_trader.data | Live collector stopped after 2 cycle(s).
+2026-11-23 02:09:31 | INFO     | psx_ai_trader.data | Live collector starting (poll_interval=1s, max_consecutive_failures=3).
+2026-11-23 02:09:31 | ERROR    | psx_ai_trader.data | Cycle failed (1 consecutive): simulated feed error
+2026-11-23 02:09:31 | ERROR    | psx_ai_trader.data | Cycle failed (2 consecutive): simulated feed error
+2026-11-23 02:09:31 | ERROR    | psx_ai_trader.data | Cycle failed (3 consecutive): simulated feed error
+2026-11-23 02:09:31 | CRITICAL | psx_ai_trader.data | Max consecutive failures (3) reached — still retrying with backoff.
+2026-11-23 02:09:31 | INFO     | psx_ai_trader.data | Live collector stopped after 3 cycle(s).
+2026-11-23 02:09:31 | INFO     | psx_ai_trader.data | Live collector starting (poll_interval=1s, max_consecutive_failures=3).
+2026-11-23 02:09:31 | WARNING  | psx_ai_trader.data | Connect attempt 1 failed: simulated connect failure — retrying in 1s
+2026-11-23 02:09:31 | WARNING  | psx_ai_trader.data | Connect attempt 2 failed: simulated connect failure — retrying in 2s
+2026-11-23 02:09:31 | INFO     | psx_ai_trader.data | Cycle recorded 2 symbol(s) (session=REGULAR).
+2026-11-23 02:09:31 | INFO     | psx_ai_trader.data | Live collector stopped after 1 cycle(s).
+2026-11-23 02:09:31 | INFO     | psx_ai_trader.data | Live collector starting (poll_interval=1s, max_consecutive_failures=3).
+2026-11-23 02:09:31 | INFO     | psx_ai_trader.data | Cycle recorded 2 symbol(s) (session=REGULAR).
+2026-11-23 02:09:31 | INFO     | psx_ai_trader.data | Live collector stopped after 1 cycle(s).
+2026-11-23 02:09:31 | INFO     | psx_ai_trader.data | Live collector starting (poll_interval=1s, max_consecutive_failures=3).
+2026-11-23 02:09:31 | INFO     | psx_ai_trader.data | Cycle recorded 2 symbol(s) (session=REGULAR).
+2026-11-23 02:09:31 | INFO     | psx_ai_trader.data | Cycle recorded 2 symbol(s) (session=REGULAR).
+2026-11-23 02:09:31 | INFO     | psx_ai_trader.data | Cycle recorded 2 symbol(s) (session=REGULAR).
+2026-11-23 02:09:31 | INFO     | psx_ai_trader.data | Live collector stopped after 3 cycle(s).
+2026-11-23 02:09:31 | INFO     | psx_ai_trader.data | Live collector starting (poll_interval=1s, max_consecutive_failures=3).
+2026-11-23 02:09:31 | INFO     | psx_ai_trader.data | Cycle recorded 2 symbol(s) (session=REGULAR).
+2026-11-23 02:09:31 | INFO     | psx_ai_trader.data | Live collector stopped after 1 cycle(s).
+2026-11-23 02:12:02 | INFO     | psx_ai_trader.data | Live collector starting (poll_interval=1s, max_consecutive_failures=3).
+2026-11-23 02:12:02 | ERROR    | psx_ai_trader.data | Cycle failed (1 consecutive): simulated feed error
+2026-11-23 02:12:02 | INFO     | psx_ai_trader.data | Cycle recorded 2 symbol(s) (session=REGULAR).
+2026-11-23 02:12:02 | INFO     | psx_ai_trader.data | Live collector stopped after 2 cycle(s).
+2026-11-23 02:12:02 | INFO     | psx_ai_trader.data | Live collector starting (poll_interval=1s, max_consecutive_failures=3).
+2026-11-23 02:12:02 | ERROR    | psx_ai_trader.data | Cycle failed (1 consecutive): simulated feed error
+2026-11-23 02:12:02 | ERROR    | psx_ai_trader.data | Cycle failed (2 consecutive): simulated feed error
+2026-11-23 02:12:02 | ERROR    | psx_ai_trader.data | Cycle failed (3 consecutive): simulated feed error
+2026-11-23 02:12:02 | CRITICAL | psx_ai_trader.data | Max consecutive failures (3) reached — still retrying with backoff.
+2026-11-23 02:12:02 | INFO     | psx_ai_trader.data | Live collector stopped after 3 cycle(s).
+2026-11-23 02:12:02 | INFO     | psx_ai_trader.data | Live collector starting (poll_interval=1s, max_consecutive_failures=3).
+2026-11-23 02:12:02 | WARNING  | psx_ai_trader.data | Connect attempt 1 failed: simulated connect failure — retrying in 1s
+2026-11-23 02:12:02 | WARNING  | psx_ai_trader.data | Connect attempt 2 failed: simulated connect failure — retrying in 2s
+2026-11-23 02:12:02 | INFO     | psx_ai_trader.data | Cycle recorded 2 symbol(s) (session=REGULAR).
+2026-11-23 02:12:02 | INFO     | psx_ai_trader.data | Live collector stopped after 1 cycle(s).
+2026-11-23 02:12:02 | INFO     | psx_ai_trader.data | Live collector starting (poll_interval=1s, max_consecutive_failures=3).
+2026-11-23 02:12:02 | INFO     | psx_ai_trader.data | Cycle recorded 2 symbol(s) (session=REGULAR).
+2026-11-23 02:12:02 | INFO     | psx_ai_trader.data | Live collector stopped after 1 cycle(s).
+2026-11-23 02:12:02 | INFO     | psx_ai_trader.data | Live collector starting (poll_interval=1s, max_consecutive_failures=3).
+2026-11-23 02:12:02 | INFO     | psx_ai_trader.data | Cycle recorded 2 symbol(s) (session=REGULAR).
+2026-11-23 02:12:02 | INFO     | psx_ai_trader.data | Cycle recorded 2 symbol(s) (session=REGULAR).
+2026-11-23 02:12:02 | INFO     | psx_ai_trader.data | Cycle recorded 2 symbol(s) (session=REGULAR).
+2026-11-23 02:12:02 | INFO     | psx_ai_trader.data | Live collector stopped after 3 cycle(s).
+2026-11-23 02:12:02 | INFO     | psx_ai_trader.data | Live collector starting (poll_interval=1s, max_consecutive_failures=3).
+2026-11-23 02:12:02 | INFO     | psx_ai_trader.data | Cycle recorded 2 symbol(s) (session=REGULAR).
+2026-11-23 02:12:02 | INFO     | psx_ai_trader.data | Live collector stopped after 1 cycle(s).

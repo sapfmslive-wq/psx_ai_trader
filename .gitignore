@@ -1,0 +1,33 @@
+# Environments
+.venv/
+venv/
+.env
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Data / DB / logs / models (populated at runtime, not source)
+data/raw/*
+data/cleaned/*
+data/candles/*
+data/features/*
+data/predictions/*
+data/reports/*
+!data/**/.gitkeep
+
+database/*.db
+!database/.gitkeep
+
+logs/*.log
+!logs/.gitkeep
+
+models/trained/*
+models/scalers/*
+models/metadata/*
+!models/**/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db

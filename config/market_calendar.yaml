@@ -1,0 +1,147 @@
+# PSX Trading Calendar — Regular (equity) Market
+#
+# Everything about WHEN the market is open lives here, in data, not in
+# src/market/trading_calendar.py. That module only knows how to interpret
+# this file — it hardcodes no PSX-specific times or dates, per Section 14's
+# explicit rule ("Do not hardcode assumptions without researching the
+# current official PSX schedule").
+#
+# SOURCES (fetched 2026-09-18, the day this file was written):
+#   Trading hours:    https://www.psx.com.pk/psx/exchange/general/trading-hours
+#   Calendar holidays: https://www.psx.com.pk/psx/exchange/general/calendar-holidays
+#
+# This project only tracks the REGULAR (equity) market — the same market
+# KSE-100, KMI-30, and the configured stocks trade on. PSX's other markets
+# (Negotiated Deals, Bills & Bonds, Square-Up/Futures, Odd Lots) run
+# different hours and are out of scope.
+#
+# PSX CAN AND DOES REVISE THESE WITHOUT much notice. Re-fetch the two pages
+# above periodically (at minimum: every year for the holiday list, and
+# whenever a PSX circular announces a schedule change) and update this file.
+# The `market-status` CLI command's `is_holiday`/`current_session` output is
+# only as correct as this file is current.
+
+source_urls:
+  - https://www.psx.com.pk/psx/exchange/general/trading-hours
+  - https://www.psx.com.pk/psx/exchange/general/calendar-holidays
+fetched_date: "2026-09-18"
+
+# Regular per-weekday sessions. Each entry is a LIST of session blocks for
+# that weekday (Monday-to-Thursday has one block; Friday has two, split by
+# the Friday prayer break; Saturday/Sunday have none). Each block's `regular`
+# window is required; `pre_open`, `pre_open_break`, and `post_close` are
+# optional, since not every block/every era of data has all of them
+# officially published (see the Ramadan example under special_sessions,
+# where only the continuous-trading window was publicly reported).
+weekday_sessions:
+  monday_to_thursday:
+    - pre_open: {start: "09:15", end: "09:30"}
+      pre_open_break: {start: "09:30", end: "09:32"}
+      regular: {start: "09:32", end: "15:30"}
+      post_close: {start: "15:35", end: "15:50"}
+  friday:
+    - pre_open: {start: "09:00", end: "09:15"}
+      pre_open_break: {start: "09:15", end: "09:17"}
+      regular: {start: "09:17", end: "12:00"}
+    - pre_open: {start: "14:15", end: "14:30"}
+      pre_open_break: {start: "14:30", end: "14:32"}
+      regular: {start: "14:32", end: "16:30"}
+      post_close: {start: "16:35", end: "16:50"}
+  saturday: []
+  sunday: []
+
+# Full-day market closures, beyond the weekly Saturday/Sunday close.
+#
+# This is PSX's official 2026 calendar (17 holidays), taken directly from
+# the Calendar Holidays page above. Entries marked moon_dependent: true are
+# PSX's own "Subject to appearance of Moon" caveat — Islamic-calendar dates
+# (Eid-ul-Fitr, Eid-ul-Azha, Ashura, Eid Milad-un-Nabi, Juma-tul-Wida) are
+# provisional until PSX confirms them close to the date, and PSX explicitly
+# reserves the right to modify or vary any date on this list. Re-confirm
+# against the official page near those dates rather than trusting this file
+# blindly for moon-dependent entries.
+#
+# THIS LIST MUST BE RE-FETCHED AND UPDATED EVERY YEAR. It is only valid for
+# calendar year 2026 as published at the time this file was written.
+#
+# Note on the count: PSX's table lists 17 holiday rows for 2026, but two of
+# those rows fall on the same calendar date as another row (23 March is
+# both "Pakistan Day" and Eid-ul-Fitr's 3rd day; 28 May is both
+# "Youm-e-Takbeer" and Eid-ul-Azha's 3rd day). Those are merged into single
+# entries below (dates must be unique in this list), so it holds 15 unique
+# closed dates, not 17 — that's a reconciliation of PSX's own table, not a
+# missing holiday.
+holidays:
+  - date: "2026-02-05"
+    name: "Kashmir Day"
+    moon_dependent: false
+  - date: "2026-03-20"
+    name: "Juma-tul-Wida"
+    moon_dependent: true
+  - date: "2026-03-21"
+    name: "Eid-ul-Fitr (1st day)"
+    moon_dependent: true
+  - date: "2026-03-22"
+    name: "Eid-ul-Fitr (2nd day)"
+    moon_dependent: true
+  - date: "2026-03-23"
+    name: "Eid-ul-Fitr (3rd day) / Pakistan Day (coincide)"
+    moon_dependent: true
+  - date: "2026-05-01"
+    name: "Labour Day"
+    moon_dependent: false
+  - date: "2026-05-26"
+    name: "Eid-ul-Azha (1st day)"
+    moon_dependent: true
+  - date: "2026-05-27"
+    name: "Eid-ul-Azha (2nd day)"
+    moon_dependent: true
+  - date: "2026-05-28"
+    name: "Eid-ul-Azha (3rd day) / Youm-e-Takbeer (coincide)"
+    moon_dependent: true
+  - date: "2026-06-25"
+    name: "Ashura (9th Moharram)"
+    moon_dependent: true
+  - date: "2026-06-26"
+    name: "Ashura (10th Moharram)"
+    moon_dependent: true
+  - date: "2026-08-14"
+    name: "Independence Day"
+    moon_dependent: false
+  - date: "2026-08-25"
+    name: "Eid Milad-un-Nabi (SAW)"
+    moon_dependent: true
+  - date: "2026-11-09"
+    name: "Allama Iqbal Day"
+    moon_dependent: false
+  - date: "2026-12-25"
+    name: "Quaid-e-Azam Day / Christmas"
+    moon_dependent: false
+
+# Date-ranged overrides of weekday_sessions, for officially-announced
+# temporary schedule changes (the best-known example is Ramadan, when PSX
+# shortens trading hours for the whole month). Each entry fully replaces
+# weekday_sessions for the weekdays it lists, for every date in
+# [start_date, end_date] inclusive. Empty by default in a fresh checkout;
+# the example below is kept only as a worked template — its date range has
+# already elapsed relative to when this file was written, so it has no
+# effect on current behavior.
+#
+# When PSX announces next year's Ramadan-hours circular, add a new entry
+# here (do not edit trading_calendar.py).
+special_sessions:
+  - start_date: "2026-02-18"
+    end_date: "2026-03-20"
+    description: >
+      Example only (already elapsed): Ramadan 1447 AH shortened hours, as
+      publicly reported (Monday-Thursday 09:15-13:30, Friday single session
+      09:00-12:30 with no afternoon session). Only the continuous-trading
+      "regular" window was available from that source, so pre_open/
+      pre_open_break/post_close are omitted here rather than guessed.
+    weekday_sessions:
+      monday_to_thursday:
+        - regular: {start: "09:15", end: "13:30"}
+      friday:
+        - regular: {start: "09:00", end: "12:30"}
+      saturday: []
+      sunday: []

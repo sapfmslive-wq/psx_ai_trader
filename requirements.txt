@@ -1,0 +1,29 @@
+# PSX AI Trader — dependency list
+#
+# Dependencies are added phase by phase, only when the phase that needs them
+# lands. Do not add anything here "for later" — Phase 1 needs none of the
+# data/ML/dashboard stack yet.
+#
+# Phase 1:
+pytest>=7.4,<9
+
+# Phase 2 — configuration loading/validation:
+PyYAML>=6.0,<7
+python-dotenv>=1.0,<2
+
+# Phase 3 — database layer:
+SQLAlchemy>=2.0,<3
+
+# Phase 11 — indicator computation (rolling windows, EWM, vectorized math):
+pandas>=2.0,<4
+numpy>=1.24,<3
+
+# Phase 15 — ML models (CPU-only; no GPU / deep-learning requirement):
+scikit-learn>=1.3,<2
+# Imported directly (model persistence; limiting BLAS/OpenMP to one core). Both are
+# also scikit-learn dependencies, listed so the direct use is explicit. SciPy is a
+# scikit-learn dependency this code never imports itself, so it is not listed.
+joblib>=1.3
+threadpoolctl>=3.1
+
+# Phase 21 will add: fastapi or flask, uvicorn (if fastapi), plotly
